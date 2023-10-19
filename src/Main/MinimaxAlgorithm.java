@@ -1,11 +1,14 @@
 package Main;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 public abstract class MinimaxAlgorithm {
     public enum State {I, X, O}
-    public static State BOT;
-    public static State ENEMY;
+    public static State BOT = State.X;
+    public static State ENEMY = State.O;
     
     public static ArrayList<Integer> findOptimalMoveSet(State[] gameState) {
         if (gameState.length != 9)
@@ -31,7 +34,7 @@ public abstract class MinimaxAlgorithm {
                 optimalMoves.add(actionIndex);
             }
         }
-        System.out.println("Best value: " + value + ". Optimal moves: " + optimalMoves);
+        System.out.println("Turn: " + BOT + ". Best value: " + value + ". Optimal moves: " + optimalMoves);
         return optimalMoves;
     }
     
@@ -112,7 +115,7 @@ public abstract class MinimaxAlgorithm {
             return State.X;
         if (totalX-totalO == 1)
             return State.O;
-        throw new RuntimeException();
+        return State.I;
     }
     
     public static ArrayList<Integer> Actions(State[] gameState) {
@@ -151,6 +154,42 @@ public abstract class MinimaxAlgorithm {
         return cloneState;
     }
     
+    public static State[] getRandomNonTerminalGameState() {
+        ArrayList<State[]> nonTerminalGameStates = new ArrayList<>();
+        State[] gameState = new State[9];
+        for (State state1 : State.values()) {
+            gameState[0] = state1;
+            for (State state2 : State.values()) {
+                gameState[1] = state2;
+                for (State state3 : State.values()) {
+                    gameState[2] = state3;
+                    for (State state4 : State.values()) {
+                        gameState[3] = state4;
+                        for (State state5 : State.values()) {
+                            gameState[4] = state5;
+                            for (State state6 : State.values()) {
+                                gameState[5] = state6;
+                                for (State state7 : State.values()) {
+                                    gameState[6] = state7;
+                                    for (State state8 : State.values()) {
+                                        gameState[7] = state8;
+                                        for (State state9 : State.values()) {
+                                            gameState[8] = state9;
+                                            if (Value(gameState) == -2 && getPlayer(gameState) != State.I)
+                                                nonTerminalGameStates.add(cloneGameState(gameState));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("Number of non-terminal game states: " + nonTerminalGameStates.size());
+        return nonTerminalGameStates.get((int) (Math.random()*nonTerminalGameStates.size()));
+    }
+    
     public static void printGameState(State[] gameState) {
         if (gameState.length != 9)
             throw new RuntimeException();
@@ -164,5 +203,14 @@ public abstract class MinimaxAlgorithm {
         }
         System.out.println();
         
+    }
+    
+    public static void userConfirmation() {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

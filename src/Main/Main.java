@@ -2,11 +2,7 @@ package Main;
 
 import org.ejml.simple.SimpleMatrix;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Random;
 
 import static Main.MinimaxAlgorithm.*;
 
@@ -33,31 +29,49 @@ public class Main {
             synapseWeightsMatrices.add(simpleMatrix);
         }
         
-        State[] gameState = new State[]{State.I, State.I, State.I,
-                                        State.I, State.I, State.I,
-                                        State.I, State.I, State.I};
-        printGameState(gameState);
-        while (Value(gameState) == -2) {
-            int move;
-            if (getPlayer(gameState) == State.X) {
-                BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
-                try {
-                    move = Integer.parseInt(stream.readLine())-1;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                
-            } else {
-                ArrayList<Integer> optimalMoveSet = MinimaxAlgorithm.findOptimalMoveSet(gameState);
-                move = optimalMoveSet.get(new Random().nextInt(optimalMoveSet.size()));
-            }
-            gameState = Result(gameState, move, getPlayer(gameState));
-            printGameState(gameState);
+        State[] trainingExample = getRandomNonTerminalGameState();                                                      //Generating a random game state as a training example
+        for (int i = 0; i < trainingExample.length; i++) {                                                              //Inputting the training example into the neural network
+            if (trainingExample[i] == State.X)
+                neuronValuesMatrices.get(0).set(0, i, 1);
+            else if (trainingExample[i] == State.O)
+                neuronValuesMatrices.get(0).set(0, i, -1);
+            else if (trainingExample[i] == State.I)
+                neuronValuesMatrices.get(0).set(0, i, 0);
         }
         
-//        SimpleMatrix matrix1 = new SimpleMatrix(new double[][]{{1, 2, 3}});
-//        SimpleMatrix matrix2 = new SimpleMatrix(new double[][]{{1}, {2}, {3}});
-//        matrix1.mult(matrix2).print();
-//        matrix2.mult(matrix1).print();
+        ArrayList<Integer> optimalMoveSet = findOptimalMoveSet(trainingExample);
+        
+        SimpleMatrix z1 = neuronValuesMatrices.get(0).mult(synapseWeightsMatrices.get(0));
+//        for (int i)
+        neuronValuesMatrices.set(1, );
+        
+//        while (true) {
+//            State[] randomState = getRandomNonTerminalGameState();
+//            printGameState(randomState);
+//            findOptimalMoveSet(randomState);
+//            userConfirmation();
+//        }
+        
+//        State[] gameState = new State[]{State.I, State.I, State.I,
+//                                        State.I, State.I, State.I,
+//                                        State.I, State.I, State.I};
+//        printGameState(gameState);
+//        while (Value(gameState) == -2) {
+//            int move;
+//            if (getPlayer(gameState) == State.X) {
+//                BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
+//                try {
+//                    move = Integer.parseInt(stream.readLine())-1;
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//
+//            } else {
+//                ArrayList<Integer> optimalMoveSet = MinimaxAlgorithm.findOptimalMoveSet(gameState);
+//                move = optimalMoveSet.get(new Random().nextInt(optimalMoveSet.size()));
+//            }
+//            gameState = Result(gameState, move, getPlayer(gameState));
+//            printGameState(gameState);
+//        }
     }
 }
