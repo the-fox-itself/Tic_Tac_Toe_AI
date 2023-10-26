@@ -34,7 +34,7 @@ public abstract class MinimaxAlgorithm {
                 optimalMoves.add(actionIndex);
             }
         }
-        System.out.println("Turn: " + BOT + ". Best value: " + value + ". Optimal moves: " + optimalMoves);
+//        System.out.println("Turn: " + BOT + ". Best value: " + value + ". Optimal moves: " + optimalMoves);
         return optimalMoves;
     }
     
@@ -154,7 +154,7 @@ public abstract class MinimaxAlgorithm {
         return cloneState;
     }
     
-    public static State[] getRandomNonTerminalGameState() {
+    public static ArrayList<State[]> getAllNonTerminalGameStates() {
         ArrayList<State[]> nonTerminalGameStates = new ArrayList<>();
         State[] gameState = new State[9];
         for (State state1 : State.values()) {
@@ -186,7 +186,11 @@ public abstract class MinimaxAlgorithm {
                 }
             }
         }
-        System.out.println("Number of non-terminal game states: " + nonTerminalGameStates.size());
+//        System.out.println("Number of non-terminal game states: " + nonTerminalGameStates.size());
+        return nonTerminalGameStates;
+    }
+    public static State[] getRandomNonTerminalGameState() {
+        ArrayList<State[]> nonTerminalGameStates = getAllNonTerminalGameStates();
         return nonTerminalGameStates.get((int) (Math.random()*nonTerminalGameStates.size()));
     }
     
