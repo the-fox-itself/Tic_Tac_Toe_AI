@@ -1,0 +1,8 @@
+Code:
+
+Neural Network visualization
+✔  Backpropagation for an arbitrary number of layers
+✔  Batch training (taking several training examples at a time)
+Addition of bias neurons
+Different activation functions
+✔  Play Tic-Tac-Toe with the Neural Network after it has been trained

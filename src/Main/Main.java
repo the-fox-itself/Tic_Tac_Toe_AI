@@ -2,16 +2,19 @@ package Main;
 
 import org.ejml.simple.SimpleMatrix;
 
+import java.io.*;
 import java.util.ArrayList;
+import java.util.Random;
 
 import static Main.MinimaxAlgorithm.*;
 
 public class Main {
     final public static int inputs = 9;
     final public static int outputs = 9;
-    final public static int[] structure = {inputs, 16, 16, outputs};
+    final public static int[] structure = {inputs, 8, 8, outputs};
     
-    public static double trainingFactor = 10;
+    public static double trainingFactor = 1;
+    public static int batchNumber = 20;
     
     public static ArrayList<SimpleMatrix> neuronValuesMatrices = new ArrayList<>();
     public static ArrayList<SimpleMatrix> synapseWeightsMatrices = new ArrayList<>();
@@ -36,59 +39,103 @@ public class Main {
             synapseWeightsMatrices.add(simpleMatrix);
         }
 
-        for (int example = 0; example < 100000; example++) {
-            State[] trainingExample = getRandomNonTerminalGameState();                                                      //Generating a random game state as a training example
-//            printGameState(trainingExample);
+        for (int batch = 0; batch < 100; batch++) {
+            ArrayList<ArrayList<SimpleMatrix>> batchDerivativeMatrices = new ArrayList<>();
             
-            inputTrainingExample(trainingExample);
-            getPerfectOutput(trainingExample);
-            forwardPropagation();
-            
-//            System.out.println("The resultant output layer neuron values:");
-//            neuronValuesMatrices.get(neuronValuesMatrices.size() - 1).print();
-            
-//            double cost = getCost();
-//            System.out.println("Cost: " + cost);
-            
-            
-            ArrayList<SimpleMatrix> synapseDerivativesMatrices = new ArrayList<>();                                         //Backpropagation
-            synapseDerivativesMatrices.add(null);
-            synapseDerivativesMatrices.add(null);
-            synapseDerivativesMatrices.add(null);
-            
-            ArrayList<SimpleMatrix> zsPrime = new ArrayList<>();
-            for (SimpleMatrix matrix : zs) {
-                SimpleMatrix zPrime = matrix.copy();
-                zPrime.equation("A = (1 / (1 + (e .^ -A))) .* (1 - (1 / (1 + (e .^ -A))))");                        //Applying a sigmoid derivative function to all z values
-                zsPrime.add(zPrime);
+            for (int example = 0; example < batchNumber; example++) {
+                State[] trainingExample = getRandomNonTerminalGameState();                                              //Generating a random game state as a training example
+                
+                inputTrainingExample(trainingExample);
+                getPerfectOutput(trainingExample);
+                forwardPropagation();
+                
+                
+                ArrayList<SimpleMatrix> derivativesMatrices = new ArrayList<>();                                        //Backpropagation
+                for (int layer = 0; layer < synapseWeightsMatrices.size(); layer++)
+                    derivativesMatrices.add(null);
+                
+                ArrayList<SimpleMatrix> zsPrime = new ArrayList<>();
+                for (SimpleMatrix matrix : zs) {
+                    SimpleMatrix zPrime = matrix.copy();
+                    zPrime.equation("A = (1 / (1 + (e .^ -A))) .* (1 - (1 / (1 + (e .^ -A))))");                //Applying a sigmoid derivative function to all z values
+                    zsPrime.add(zPrime);
+                }
+                
+                int layerIndex = neuronValuesMatrices.size() - 1;                                                       //The index of the current neuron layer
+                
+                SimpleMatrix sigmaOutput = perfectOutput.minus(neuronValuesMatrices.get(layerIndex)).negative().elementMult(zsPrime.get(layerIndex - 1));  //Output layer backpropagation
+                SimpleMatrix dJdW3 = neuronValuesMatrices.get(layerIndex - 1).transpose().mult(sigmaOutput);
+                derivativesMatrices.set(layerIndex - 1, dJdW3);
+                
+                SimpleMatrix sigmaPrevious = sigmaOutput;
+                layerIndex--;
+                for (; layerIndex > 0; layerIndex--) {
+                    sigmaPrevious = sigmaPrevious.mult(synapseWeightsMatrices.get(layerIndex).transpose()).elementMult(zsPrime.get(layerIndex - 1));
+                    SimpleMatrix dJdW = neuronValuesMatrices.get(layerIndex - 1).transpose().mult(sigmaPrevious);
+                    derivativesMatrices.set(layerIndex - 1, dJdW);
+                }
+                
+                batchDerivativeMatrices.add(derivativesMatrices);
             }
             
+            ArrayList<SimpleMatrix> meanDerivativesMatrices = new ArrayList<>();                                        //Calculating the mean derivatives from all training examples in a batch
+            for (SimpleMatrix synapseWeightsMatrix : synapseWeightsMatrices)
+                meanDerivativesMatrices.add(SimpleMatrix.filled(synapseWeightsMatrix.getNumRows(), synapseWeightsMatrix.getNumCols(), 0));
+            for (ArrayList<SimpleMatrix> singleBatch : batchDerivativeMatrices) {
+                for (int matrix = 0; matrix < meanDerivativesMatrices.size(); matrix++) {
+                    meanDerivativesMatrices.set(matrix, meanDerivativesMatrices.get(matrix).plus(singleBatch.get(matrix)));
+                }
+            }
+            for (SimpleMatrix matrix : meanDerivativesMatrices) {
+                matrix.divide(batchNumber);
+            }
             
-            SimpleMatrix sigma4 = perfectOutput.minus(neuronValuesMatrices.get(3)).negative().elementMult(zsPrime.get(2));
-            SimpleMatrix dJdW3 = neuronValuesMatrices.get(2).transpose().mult(sigma4);
-            synapseDerivativesMatrices.set(2, dJdW3);
-//            dJdW3.print();
-            
-            SimpleMatrix sigma3 = sigma4.mult(synapseWeightsMatrices.get(2).transpose()).elementMult(zsPrime.get(1));
-            SimpleMatrix dJdW2 = neuronValuesMatrices.get(1).transpose().mult(sigma3);
-            synapseDerivativesMatrices.set(1, dJdW2);
-//            dJdW2.print();
-            
-            SimpleMatrix sigma2 = sigma3.mult(synapseWeightsMatrices.get(1).transpose()).elementMult(zsPrime.get(0));
-            SimpleMatrix dJdW1 = neuronValuesMatrices.get(0).transpose().mult(sigma2);
-            synapseDerivativesMatrices.set(0, dJdW1);
-//            dJdW1.print();
-            
-            for (SimpleMatrix derivatives : synapseDerivativesMatrices) {                                                   //Multiplying the derivatives the training factor
+            for (SimpleMatrix derivatives : meanDerivativesMatrices) {                                                  //Multiplication by the training factor
                 derivatives.equation("A = A * B", trainingFactor, "B");
             }
             
-            for (int layer = 0; layer < synapseDerivativesMatrices.size(); layer++) {
-//                synapseDerivativesMatrices.get(layer).print();
-                synapseWeightsMatrices.set(layer, synapseWeightsMatrices.get(layer).minus(synapseDerivativesMatrices.get(layer)));
+            for (int layer = 0; layer < meanDerivativesMatrices.size(); layer++) {                                      //Applying the derivatives
+//                meanDerivativesMatrices.get(layer).print();
+                synapseWeightsMatrices.set(layer, synapseWeightsMatrices.get(layer).minus(meanDerivativesMatrices.get(layer)));
             }
             
             System.out.println(testNeuralNetwork());
+        }
+        
+        
+        while (true) {                                                                                                  //Playing a game with the trained neural network
+            State[] board = getEmptyBoard();
+            printGameState(board);
+            State user;
+            int rand = new Random().nextInt(2);
+            if (rand == 0) {
+                user = State.X;
+            } else {
+                user = State.O;
+            }
+            while (Value(board) == -2) {
+                int move;
+                if (getPlayer(board) == user) {
+                    BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
+                    try {
+                        move = Integer.parseInt(stream.readLine()) - 1;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    
+                } else {
+                    inputTrainingExample(board);
+                    forwardPropagation();
+                    move = getNeuralNetworkAnswer();
+                }
+                board = Result(board, move, getPlayer(board));
+                printGameState(board);
+            }
+            int value = Value(board);
+            if (value == 1)
+                System.out.println(BOT + " is the winner!");
+            else if (value == -1)
+                System.out.println(ENEMY + " is the winner!");
         }
     }
     
@@ -119,6 +166,20 @@ public class Main {
             finalZ.equation("1 / (1 + (e .^ -A))");                                                             //Applying a sigmoid function to all z values
             neuronValuesMatrices.set(layer + 1, finalZ);
         }
+    }
+    public static int getNeuralNetworkAnswer() {
+        double max = 0;
+        int answer = 0;
+        for (int neuron = 0; neuron < outputs; neuron++) {
+            if (neuronValuesMatrices.get(0).get(neuron) != 0)
+                continue;
+            double value = neuronValuesMatrices.get(neuronValuesMatrices.size()-1).get(neuron);
+            if (value > max || neuron == 0) {
+                max = value;
+                answer = neuron;
+            }
+        }
+        return answer;
     }
     public static double getCost() {
         double cost = 0;                                                                                                //Calculating the total cost for the processed training example

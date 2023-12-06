@@ -193,6 +193,9 @@ public abstract class MinimaxAlgorithm {
         ArrayList<State[]> nonTerminalGameStates = getAllNonTerminalGameStates();
         return nonTerminalGameStates.get((int) (Math.random()*nonTerminalGameStates.size()));
     }
+    public static State[] getEmptyBoard() {
+        return new State[]{State.I, State.I, State.I, State.I, State.I, State.I, State.I, State.I, State.I};
+    }
     
     public static void printGameState(State[] gameState) {
         if (gameState.length != 9)
